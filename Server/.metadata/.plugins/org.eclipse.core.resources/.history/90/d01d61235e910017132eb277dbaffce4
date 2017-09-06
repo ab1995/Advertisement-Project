@@ -1,0 +1,18 @@
+package com.project.advertisement.entity;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "CATEGORY")
+public class Category {
+	
+	@Id
+	@Column(name = "ID")
+	private Long id;
+	
+	@Column(name = "NAME")
+	private String categoryName;
+}

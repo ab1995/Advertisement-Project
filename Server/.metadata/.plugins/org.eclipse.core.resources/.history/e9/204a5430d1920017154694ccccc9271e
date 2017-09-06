@@ -1,0 +1,5 @@
+package com.project.advertisement.entity;
+
+public class DateConditions {
+
+}

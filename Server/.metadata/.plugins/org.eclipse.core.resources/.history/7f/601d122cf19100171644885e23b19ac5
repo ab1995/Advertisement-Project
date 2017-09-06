@@ -1,0 +1,11 @@
+package com.project.advertisement.dao;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.project.advertisement.entity.Advertise;
+
+public interface AdDAO {
+	public String getCategories() throws JsonProcessingException;
+	public String getActions() throws JsonProcessingException;
+	public String postAd(Advertise ad, String auth_token);
+	public String updateAd(Advertise ad, String auth_token);
+}

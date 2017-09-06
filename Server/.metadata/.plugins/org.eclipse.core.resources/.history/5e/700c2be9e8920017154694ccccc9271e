@@ -1,0 +1,342 @@
+package com.project.advertisement.dao;
+
+
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.util.List;
+
+import org.json.JSONObject;
+import org.springframework.aop.framework.autoproxy.AutoProxyUtils;
+import org.springframework.orm.hibernate5.support.HibernateDaoSupport;
+import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleAbstractTypeResolver;
+import com.project.advertisement.entity.Actions;
+import com.project.advertisement.entity.Advertise;
+import com.project.advertisement.entity.Category;
+import com.project.advertisement.entity.DateConditions;
+import com.project.advertisement.entity.DummyAdvertise;
+import com.project.advertisement.entity.DummyMessage;
+import com.project.advertisement.entity.Message;
+import com.project.advertisement.entity.User;
+import com.project.advertisement.entity.UserSession;
+
+public class AdDAOImpl extends HibernateDaoSupport implements AdDAO{
+
+	public String getCategories() throws JsonProcessingException {
+		List<Category> categoryList=(List<Category>)getHibernateTemplate().find("FROM Category");
+		String str="";
+		ObjectMapper mapper=new ObjectMapper();
+		str=mapper.writeValueAsString(categoryList);
+		return str;
+	}
+
+	public String getActions() throws JsonProcessingException {
+		List<Actions> categoryList=(List<Actions>)getHibernateTemplate().find("FROM Actions");
+		String str="";
+		ObjectMapper mapper=new ObjectMapper();
+		str=mapper.writeValueAsString(categoryList);
+		return str;
+	}
+
+	
+	@Transactional
+	public String postAd(DummyAdvertise ad, String auth_token) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", auth_token);
+		if(!userSession.isEmpty())
+		{	
+			List<Category> categoryList=(List<Category>)getHibernateTemplate().find("FROM Category WHERE categoryName=?",ad.getCategory());
+			List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?", userSession.get(0).getUserName());
+			if(!categoryList.isEmpty()){
+				SimpleDateFormat format= new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+				Date curDate = new Date(System.currentTimeMillis());
+				 
+				Advertise userAd=new Advertise();
+				userAd.setTitle(ad.getTitle());
+				userAd.setCategory(categoryList.get(0));
+				userAd.setDescription(ad.getDescription());
+				userAd.setName(ad.getName());
+				userAd.setAdUser(userList.get(0));
+				userAd.setPostTime(curDate);
+				getHibernateTemplate().save(userAd);
+				return "Ad Posted";
+			}
+			else{
+				return "Invalid Category";
+			}
+			
+		}	
+		else
+		{	
+			return "Invalid auth-token";
+		}
+	}
+
+	@Transactional
+	public String updateAd(Advertise ad, String auth_token) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", auth_token);
+		if(!userSession.isEmpty())
+		{
+			Advertise adToUpdate=getHibernateTemplate().load(Advertise.class, ad.getId());
+			if(adToUpdate.getAdUser().getUserName().equals(userSession.get(0).getUserName()))
+			{
+				Date curDate = new Date(System.currentTimeMillis());
+				adToUpdate.setName(ad.getName());
+				adToUpdate.setCategory(ad.getCategory());
+				adToUpdate.setTitle(ad.getTitle());
+				adToUpdate.setDescription(ad.getDescription());
+				System.out.println(adToUpdate);
+				getHibernateTemplate().update(adToUpdate);
+				return "Ad Updated";
+			}
+			else{
+				return "Unauthorised Operation";
+			}
+			
+		}	
+		else
+		{	
+			return "Invalid auth-token";
+		}
+	}
+
+	public String getUserAds(String authToken) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		if(!userSession.isEmpty())
+		{
+			List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?", userSession.get(0).getUserName());
+			StringBuilder userAds=new StringBuilder();
+			ObjectMapper objMapper=new ObjectMapper();
+			try {
+				userAds.append(objMapper.writeValueAsString(userList.get(0).getAdvertisements()));
+			} catch (JsonProcessingException e) {}
+			
+			return userAds.toString();
+		}	
+		else
+		{	
+			JSONObject json = new JSONObject();
+		    json.put("Status","Invalid auth-token");
+		    return json.toString();
+		}
+	}
+
+	public String getUserAd(String authToken, int postId) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		String status="";
+		if(!userSession.isEmpty())
+		{
+			List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?", userSession.get(0).getUserName());
+			List<Advertise> ad=(List<Advertise>)getHibernateTemplate().find("FROM Advertise WHERE id=?", postId);
+			
+			
+			if(!ad.isEmpty()){
+				
+				if(userList.get(0).getUserName().equals(ad.get(0).getAdUser().getUserName()))
+				{
+					StringBuilder userAd=new StringBuilder();
+					ObjectMapper objMapper=new ObjectMapper();
+					try {
+						userAd.append(objMapper.writeValueAsString(ad.get(0)));
+					} catch (JsonProcessingException e) {}
+					
+					return userAd.toString();
+				}
+				else{
+					status= "Unauthorised Operation";
+				}
+				
+			}
+			else{
+				status= "Invalid PostId";
+			}
+			
+		}	
+		else
+		{	
+			status= "Invalid auth-token";
+		}
+		JSONObject json = new JSONObject();
+	    json.put("Status",status);
+	    return json.toString();
+	}
+
+	@Transactional
+	public String deleteUserAd(String authToken, int postId) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		String status="";
+		if(!userSession.isEmpty())
+		{
+			List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?", userSession.get(0).getUserName());
+			List<Advertise> ad=(List<Advertise>)getHibernateTemplate().find("FROM Advertise WHERE id=?", postId);
+			
+			
+			if(!ad.isEmpty()){
+				
+				if(userList.get(0).getUserName().equals(ad.get(0).getAdUser().getUserName()))
+				{
+					getHibernateTemplate().delete(ad.get(0));
+					status= "Ad Deleted";
+				}
+				else{
+					status= "Unauthorised Operation";
+				}
+				
+			}
+			else{
+				status= "Invalid PostId";
+			}
+			
+		}	
+		else
+		{	
+			status= "Invalid auth-token";
+		}
+		JSONObject json = new JSONObject();
+	    json.put("Status",status);
+	    return json.toString();
+	}
+
+	public String getAdDetail(String authToken, int postId) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		String status="";
+		if(!userSession.isEmpty())
+		{
+			List<Advertise> ad=(List<Advertise>)getHibernateTemplate().find("FROM Advertise WHERE id=?", postId);
+			
+			if(!ad.isEmpty()){
+				StringBuilder adDetails=new StringBuilder();
+				ObjectMapper objMapper=new ObjectMapper();
+				try {
+					adDetails.append(objMapper.writeValueAsString(ad.get(0)));
+				} catch (JsonProcessingException e) {}
+				
+				return adDetails.toString();
+			}
+			 status="Invalid Post Id";
+		}	
+		else
+		{	
+			 status="Invalid auth-token";
+		}
+		JSONObject json = new JSONObject();
+	    json.put("Status",status);
+	    return json.toString();
+	}
+
+	public String searchByText(String authToken, String searchTexts) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		String status="";
+		if(!userSession.isEmpty())
+		{
+			List<Advertise> ad=(List<Advertise>)getHibernateTemplate().findByNamedParam("FROM Advertise WHERE LOWER(title) LIKE :searchText OR LOWER(name) LIKE :searchText OR LOWER(category) LIKE :searchText OR LOWER(description) LIKE :searchText", "searchText", "%"+searchTexts.toLowerCase()+"%");
+			if(!ad.isEmpty()){
+				StringBuilder adDetails=new StringBuilder();
+				ObjectMapper objMapper=new ObjectMapper();
+				try {
+					adDetails.append(objMapper.writeValueAsString(ad));
+				} catch (JsonProcessingException e) {}
+				
+				return adDetails.toString();
+			}
+			 status="No Ad Found";
+		}	
+		else
+		{	
+			 status="Invalid auth-token";
+		}
+		JSONObject json = new JSONObject();
+	    json.put("Status",status);
+	    return json.toString();
+	}
+
+	public String search(String authToken, String searchText, String category) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		String status="";
+		if(!userSession.isEmpty())
+		{
+			List<Advertise> ad=(List<Advertise>)getHibernateTemplate().findByNamedParam("FROM Advertise Ad WHERE (LOWER(title) LIKE :searchText OR LOWER(name) LIKE :searchText OR LOWER(description) LIKE :searchText) OR LOWER(Ad.category.categoryName) LIKE :category ",new String[]{"searchText", "category"}, new String[]{"%"+searchText.toLowerCase()+"%","%"+category.toLowerCase()+"%"});
+			
+			if(!ad.isEmpty() || ad!=null){
+				StringBuilder adDetails=new StringBuilder();
+				ObjectMapper objMapper=new ObjectMapper();
+				try {
+					adDetails.append(objMapper.writeValueAsString(ad));
+				} catch (JsonProcessingException e) {}
+				
+				return adDetails.toString();
+			}
+			 status="No Ad Found";
+		}	
+		else
+		{	
+			 status="Invalid auth-token";
+		}
+		JSONObject json = new JSONObject();
+	    json.put("Status",status);
+	    return json.toString();
+	}
+
+	@Transactional
+	public String sendMessage(DummyMessage message, String auth_token) {
+		List<UserSession> userSessionList=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", auth_token);
+		if(!userSessionList.isEmpty())
+		{	
+			Advertise adToMessage =getHibernateTemplate().load(Advertise.class, message.getPostId());
+			if(adToMessage!=null){
+				UserSession userSession=getHibernateTemplate().load(UserSession.class, auth_token);
+				List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?", userSession.getUserName());
+				
+				Message msgToSend=new Message(message.getMessage(), adToMessage, adToMessage.getAdUser().getUserName(), userList.get(0));
+				getHibernateTemplate().save(msgToSend);
+				return "Message Sent";
+			}
+			else{
+				return "Invalid PostId";
+			}
+	
+		}
+		else{
+			return "Invalid AuthToken";
+		}
+	}
+
+	public String getDateConditions() throws JsonProcessingException {
+		List<DateConditions> categoryList=(List<DateConditions>)getHibernateTemplate().find("FROM DateConditions");
+		String str="";
+		ObjectMapper mapper=new ObjectMapper();
+		str=mapper.writeValueAsString(categoryList);
+		return str;
+	}
+
+	public String getReceivedMessages(String authToken) {
+		List<UserSession> userSession=(List<UserSession>)getHibernateTemplate().find("FROM UserSession WHERE authToken=?", authToken);
+		String status="";
+		if(!userSession.isEmpty())
+		{
+			List<Message> messageList=(List<Message>)getHibernateTemplate().find("FROM Message WHERE postedTo=?", userSession.get(0).getUserName());
+			Advertise ad=getHibernateTemplate().load(Advertise.class, messageList.get(0).getAdPost());
+					
+			List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?",userSession.get(0).getUserName());
+			//List<User> userList=(List<User>)getHibernateTemplate().find("FROM User WHERE userName=?",userSession.get(0).getUserName());
+			if(!userList.isEmpty()){
+				StringBuilder adDetails=new StringBuilder();
+				ObjectMapper objMapper=new ObjectMapper();
+				try {
+					adDetails.append(objMapper.writeValueAsString(userList.get(0).getMessages()));
+				} catch (JsonProcessingException e) {}
+				
+				return adDetails.toString();
+			}
+			 status="No Message Found";
+		}	
+		else
+		{	
+			 status="Invalid auth-token";
+		}
+		JSONObject json = new JSONObject();
+	    json.put("Status",status);
+	    return json.toString();
+	}
+}

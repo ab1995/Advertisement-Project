@@ -1,0 +1,5 @@
+package com.project.advertisement.dao;
+
+public interface AdDAO {
+
+}

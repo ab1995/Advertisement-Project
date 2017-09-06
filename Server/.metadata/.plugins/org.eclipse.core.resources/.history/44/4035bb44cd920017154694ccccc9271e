@@ -1,0 +1,9 @@
+package com.project.advertisement.entity;
+
+public class DummyMessage {
+
+	private Long postId;
+	private String message;
+	
+	
+}

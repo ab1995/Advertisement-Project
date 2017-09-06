@@ -1,0 +1,13 @@
+package com.project.advertisement.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.project.advertisement.dao.AdDAO;
+import com.project.advertisement.dao.UserDAO;
+
+public class AdServiceImpl implements AdService {
+
+	@Autowired
+	AdDAO adDao;
+	
+}
