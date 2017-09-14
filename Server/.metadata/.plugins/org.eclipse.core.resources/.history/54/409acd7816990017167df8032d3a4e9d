@@ -258,12 +258,15 @@ public class AdDAOImpl extends HibernateDaoSupport implements AdDAO{
 		//if(!userSession.isEmpty())
 		if(true)
 		{
-			List<Advertise> ad=null;
 			if(!searchText.isEmpty())
-				ad=(List<Advertise>)getHibernateTemplate().findByNamedParam("FROM Advertise Ad WHERE (LOWER(title) LIKE :searchText AND LOWER(name) LIKE :searchText OR LOWER(description) LIKE :searchText) OR LOWER(Ad.category.categoryName) LIKE :category ",new String[]{"searchText", "category"}, new String[]{"%"+searchText.toLowerCase()+"%","%"+category.toLowerCase()+"%"});
+			{
+				List<Advertise> ad=(List<Advertise>)getHibernateTemplate().findByNamedParam("FROM Advertise Ad WHERE (LOWER(title) LIKE :searchText AND LOWER(name) LIKE :searchText OR LOWER(description) LIKE :searchText) OR LOWER(Ad.category.categoryName) LIKE :category ",new String[]{"searchText", "category"}, new String[]{"%"+searchText.toLowerCase()+"%","%"+category.toLowerCase()+"%"});
+			}
 			else
-				ad=(List<Advertise>)getHibernateTemplate().findByNamedParam("FROM Advertise Ad WHERE LOWER(Ad.category.categoryName) LIKE :searchText ", "searchText", "%"+category.toLowerCase()+"%");
-				
+			{
+				List<Advertise> ad=(List<Advertise>)getHibernateTemplate().findByNamedParam("FROM Advertise Ad WHERE LOWER(Ad.category.categoryName) LIKE :searchText ", "searchText", "%"+category.toLowerCase()+"%");
+			}
+			
 			if(!ad.isEmpty() || ad!=null){
 				StringBuilder adDetails=new StringBuilder();
 				ObjectMapper objMapper=new ObjectMapper();

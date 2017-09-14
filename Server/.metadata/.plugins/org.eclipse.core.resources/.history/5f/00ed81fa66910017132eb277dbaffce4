@@ -1,5 +1,0 @@
-package com.project.advertisement.service;
-
-public interface AdService {
-
-}

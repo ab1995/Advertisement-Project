@@ -129,8 +129,9 @@ public class AdvProjectController {
 		return adService.getUserAd(authToken, Integer.parseInt(postId));
 	}
 	
-	@CrossOrigin(origins = "*")
+	@CrossOrigin
 	@RequestMapping(value="post", method=RequestMethod.DELETE,
+			consumes=MediaType.APPLICATION_JSON_VALUE,
 			produces=MediaType.APPLICATION_JSON_VALUE)
 	public  @ResponseBody String deleteUserAd(@RequestHeader(value="auth-token") String authToken,
 			@RequestParam(value="postId") String postId) {
